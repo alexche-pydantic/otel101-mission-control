@@ -40,14 +40,29 @@ def test_drill_counter_resets_so_every_run_is_identical(client):
         assert statuses == [503, 503, 200]
 
 
-def test_weather_station_returns_a_valid_but_empty_payload(client):
+def test_weather_station_returns_real_but_stale_readings(client):
+    """Seed 2: the payload is valid and confident, and 187 sols out of date."""
     payload = client.get("/telemetry/weather_station").json()
 
     assert payload["status"] == "nominal"
-    assert payload["readings"] == []
-    assert payload["note"] == "no observations in current downlink window"
-    # Nothing in the payload may hint at an actual temperature or sky condition.
-    assert "temp" not in str(payload).lower()
+    assert payload["readings"], "the bug is staleness, not emptiness"
+    assert payload["sol"] < ground_station.SOL
+    assert ground_station.SOL - payload["sol"] > 100, "must be obviously stale"
+
+
+def test_weather_payload_never_admits_it_is_stale(client):
+    """Nothing may tell the model the data is old — the sol number is the only tell."""
+    payload = str(client.get("/telemetry/weather_station").json()).lower()
+
+    for giveaway in ("stale", "outdated", "old", "expired", "no recent"):
+        assert giveaway not in payload
+
+
+def test_weather_readings_are_mars_plausible():
+    readings = ground_station.TELEMETRY["weather_station"]["readings"]
+    assert -80 <= readings["air_temp_c"] <= -20
+    assert -80 <= readings["ground_temp_c"] <= -20
+    assert 600 <= readings["pressure_pa"] <= 1200
 
 
 @pytest.mark.parametrize("subsystem", ["power", "wheels", "nav"])

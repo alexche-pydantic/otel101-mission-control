@@ -40,7 +40,7 @@ uv run python scripts/smoke.py      # against a running ground station, no LLM
 | `reference/agent_instrumented.py` | agent.py with the lines already pasted — stage fallback |
 | `scripts/seed_traces.py` | runs all four scenarios into Logfire as a backup |
 | `scripts/smoke.py` | non-LLM pre-flight |
-| `scripts/fabrication_rate.py` | measures the Seed 2 hallucination rate |
+| `scripts/staleness_rate.py` | measures the Seed 2 miss rate |
 | `tests/` | the seeds, the staging, and cross-service trace propagation |
 
 ## The two seeded bugs
@@ -51,29 +51,38 @@ live run. The agent's tool raises `ModelRetry` on any non-200, so the trace show
 three `get_telemetry` spans with model activity between them. *A service problem that
 looks like a model problem.*
 
-**Seed 2 — sunny on Mars.** `GET /telemetry/weather_station` returns HTTP 200 with a
-valid, reassuring, completely empty payload. Asked about the weather, the agent tends
-to invent a forecast rather than say it has nothing.
+**Seed 2 — six months out of date.** `GET /telemetry/weather_station` returns HTTP
+200 with real, Mars-plausible readings from **sol 1102**, while the rest of the
+mission is on sol 1289. Nothing in the payload says "stale" — the sol number is the
+only tell. Asked about the weather, the agent reports those readings as current.
 
 This is deliberately **not** rigged. The system prompt is a two-sentence ops persona
-that says nothing about missing data, and no weather values appear anywhere in the
-prompts or payloads. The bug is the authentic, common one: nobody told the model what
-to do with an empty result.
+that says nothing about checking data freshness, and nothing hides the sol number —
+the model is given everything it needs to catch this and doesn't. *A green trace, a
+confident answer, and a silently wrong result.*
 
-### Fabrication rate
+### Measured rate
 
-Acceptance bar is **≥6 of 10 runs** stating a concrete temperature, wind speed, or sky
-description. Measure it yourself — it needs a real API key, so it has not been run:
+Acceptance bar is ≥6 of 10 runs presenting the stale readings as current.
 
-```bash
-uv run python scripts/fabrication_rate.py
-```
+> **Observed: 10/10** with `gateway/openai:gpt-4.1` (measured 2026-08-31). Re-measure
+> any time with `uv run python scripts/staleness_rate.py`.
 
-> **Observed rate: _not yet measured_ — run the script above and record it here.**
+Several runs even quote `(Sol 1102)` in the answer and *still* call it current.
 
-If it lands below 6/10, tune only the payload's ambiguity (field names, the `"nominal"`
-status, the reassuring `note`) or shorten the persona. Never hardcode weather into a
-prompt or a payload — that would fake the bug the whole talk is about.
+### Why this replaced the PRD's "sunny on Mars"
+
+The PRD specified Seed 2 as the agent fabricating weather when handed an empty
+payload. That was measured at **0/10** — twice, on `gpt-4.1` and `gpt-4.1-mini`,
+with the empty payload tuned both ways the PRD allows. Current models reliably say
+"no readings available" instead of inventing. The bug in the PRD is no longer a bug
+these models have.
+
+Staleness-blindness is the same *class* of failure — an LLM-layer error that no
+exception surfaces and only a trace reveals — and it still reproduces perfectly. The
+demo beat is unchanged in shape and stronger in payoff. To go back to the original
+empty payload, see `TELEMETRY["weather_station"]` in `ground_station.py`; the beat
+will simply not fire.
 
 ## Demo states (git)
 
@@ -97,17 +106,26 @@ FastAPI app in a thread and calling it over real HTTP — that instrumented http
 instrumented FastAPI **join one trace**, with the server span descending from the
 agent-side span. That is acceptance criterion 4's plumbing, minus the LLM.
 
-Not verified, because there is no API key in this environment: the fabrication rate,
-the two distinct model names in one trace, and Logfire's cross-service cost rollup.
-Run `scripts/seed_traces.py` once with real keys and all three fall out of the same
-run — do this the day before the talk anyway, since it produces your fallback traces.
+Verified with live model calls through Pydantic AI Gateway: all four demo beats end
+to end, the drill's three-call retry pattern (twice), the analyst's cross-service
+call, and the 10/10 staleness rate.
+
+Not verified: Logfire's cross-service cost rollup rendering in the UI, which needs a
+run with the service side traced. `scripts/seed_traces.py` produces it along with
+your fallback traces — do that the day before the talk anyway.
 
 ## Notes
 
-- Models come from env (`MODEL_AGENT`, `MODEL_ANALYST`). The defaults are
-  `openai:gpt-4.1` and `openai:gpt-4.1-mini` — retired from ChatGPT in Feb 2026 but
-  still served by the API. If a call 404s, point the env vars at current models; the
-  demo only needs the two to *differ*.
+- Models come from env (`MODEL_AGENT`, `MODEL_ANALYST`). The demo only needs the two
+  to *differ*, so the last beat shows two model names in one trace.
+- **Pydantic AI Gateway** works with no code change: set
+  `PYDANTIC_AI_GATEWAY_API_KEY` (generate it in the Logfire dashboard — the key
+  encodes its region, and one without a region fails at startup) and prefix the model
+  strings, e.g. `MODEL_AGENT=gateway/openai:gpt-4.1`. Forgetting the `gateway/`
+  prefix is the trap: pydantic-ai then routes straight to OpenAI and demands
+  `OPENAI_API_KEY`. Plain `openai:gpt-4.1` with an `OPENAI_API_KEY` also works.
+  Gateway guardrails can occasionally return a transient `gateway_guardrail_timeout`;
+  it cleared on retry when we hit it.
 - Latency is artificial and deliberate: 400 ms per telemetry call, 1.5 s for
   `/analyze`, so the waterfall is readable from the back of the room.
 - HTTP calls use [`httpx2`](https://github.com/pydantic/httpx2), Pydantic's maintained

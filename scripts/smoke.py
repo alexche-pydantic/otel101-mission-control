@@ -35,8 +35,14 @@ again = [httpx2.get(f"{URL}/telemetry/drill", timeout=10).status_code for _ in r
 check("drill counter reset for the next run", again == [503, 503, 200], str(again))
 
 weather = httpx2.get(f"{URL}/telemetry/weather_station", timeout=10).json()
-check("weather payload is empty of readings", weather["readings"] == [])
+power_sol = power.json()["sol"]
+check("weather payload has readings", bool(weather["readings"]))
 check("weather payload still claims nominal", weather["status"] == "nominal")
+check(
+    "weather data is stale",
+    weather["sol"] < power_sol,
+    f"sol {weather['sol']} vs mission sol {power_sol}",
+)
 
 print()
 if failures:

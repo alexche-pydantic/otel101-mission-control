@@ -96,21 +96,32 @@ says it's the service.*
 
 Type: `What's the weather at Elysium Base?`
 
-You get a confident forecast — a temperature, a sky description. Now open the
-`get_telemetry` tool span next to it:
+You get a confident, precise forecast — air temperature, ground temperature, wind,
+pressure. Every number is real. Read it out as if all is well.
+
+Now open the `get_telemetry` tool span next to it:
 
 ```json
-{"subsystem": "weather_station", "status": "nominal", "sol": 1289,
- "readings": [], "note": "no observations in current downlink window"}
+{"subsystem": "weather_station", "status": "nominal", "sol": 1102,
+ "readings": {"air_temp_c": -63.2, "ground_temp_c": -71.8, "wind_speed_mps": 4.6,
+              "pressure_pa": 705, "opacity_tau": 0.6},
+ "last_downlink": "sol 1102 14:07 LMST"}
 ```
 
-Empty. Every number in that answer was invented. Nothing failed, nothing was slow,
-no exception was raised — and the only reason you know is that you can see both the
-tool's output and the model's answer in one place.
+**Sol 1102.** Every other subsystem in this demo reports sol 1289. That weather is
+187 sols old — about six months. The agent called it "the current weather".
 
-> **If it breaks:** if the model happens to admit it has no data, say "that's the
-> honest run — here's the more common one" and switch to the pinned "sunny on Mars"
-> trace. Expect fabrication roughly 6-8 times in 10 (see README).
+Often the answer even prints `(Sol 1102)` itself: the model *saw* the timestamp,
+repeated it, and still called the reading current. If that happens, point at it —
+it is the best thirty seconds in the talk.
+
+The line to land: *nothing failed. No exception, no 503, no latency spike, a
+completely green trace — and the answer is six months wrong. This is the class of
+bug you cannot find without looking inside the run.*
+
+> **If it breaks:** if the agent does flag the data as stale, say "that's the careful
+> run — here's the usual one" and switch to the pinned "stale weather" trace.
+> Measured at 10/10 missed, so this is the most reliable beat in the demo.
 
 ## T+11:00 — STEP 5, one trace across two services (3 min)
 

@@ -73,13 +73,21 @@ TELEMETRY = {
             "samples_cached": 3,
         },
     },
-    # Seed 2: valid, reassuring, and completely empty of readings.
+    # Seed 2: real, Mars-plausible readings — but from sol 1102, 187 sols before
+    # the current sol 1289. Valid, confident, and quietly six months out of date.
+    # Nothing in the payload says "stale"; the sol number is the only tell.
     "weather_station": {
         "subsystem": "weather_station",
         "status": "nominal",
-        "sol": SOL,
-        "readings": [],
-        "note": "no observations in current downlink window",
+        "sol": 1102,
+        "readings": {
+            "air_temp_c": -63.2,
+            "ground_temp_c": -71.8,
+            "wind_speed_mps": 4.6,
+            "pressure_pa": 705,
+            "opacity_tau": 0.6,
+        },
+        "last_downlink": "sol 1102 14:07 LMST",
     },
 }
 
