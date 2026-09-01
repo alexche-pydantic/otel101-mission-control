@@ -14,7 +14,7 @@ import os
 import pathlib
 import sys
 
-import httpx
+import httpx2
 import logfire
 from dotenv import load_dotenv
 
@@ -38,8 +38,8 @@ SCENARIOS = [
 ]
 
 try:
-    httpx.get(f"{GROUND_STATION_URL}/telemetry/power", timeout=10)
-except httpx.ConnectError:
+    httpx2.get(f"{GROUND_STATION_URL}/telemetry/power", timeout=10)
+except httpx2.ConnectError:
     sys.exit(f"ground station is not up at {GROUND_STATION_URL}")
 
 if os.getenv("GROUND_STATION_TELEMETRY") != "1":

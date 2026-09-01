@@ -93,7 +93,7 @@ out and assert the right shape for it.
 Verified offline, in `tests/`: both failure seeds and their reset behaviour, latency
 bounds, the `/analyze` contract, the tool's `ModelRetry` on 503, STEP 2 being exactly
 three lines, `reference/` staying in sync with `agent.py`, and — by running the real
-FastAPI app in a thread and calling it over real HTTP — that instrumented httpx and
+FastAPI app in a thread and calling it over real HTTP — that instrumented httpx2 and
 instrumented FastAPI **join one trace**, with the server span descending from the
 agent-side span. That is acceptance criterion 4's plumbing, minus the LLM.
 
@@ -110,4 +110,9 @@ run — do this the day before the talk anyway, since it produces your fallback 
   demo only needs the two to *differ*.
 - Latency is artificial and deliberate: 400 ms per telemetry call, 1.5 s for
   `/analyze`, so the waterfall is readable from the back of the room.
+- HTTP calls use [`httpx2`](https://github.com/pydantic/httpx2), Pydantic's maintained
+  continuation of httpx. `logfire.instrument_httpx()` instruments it unchanged — the
+  STEP 5 line is still one line — and the test suite proves the traceparent still
+  propagates. (Ignore `opentelemetry-instrumentation-httpx2` on PyPI: it is an empty
+  0.0.0 placeholder, not a real package.)
 - No database, no collector, no auth, no Docker. Two files you can read on a projector.

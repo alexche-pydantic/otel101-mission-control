@@ -2,7 +2,7 @@
 
 import pathlib
 
-import httpx
+import httpx2
 import pytest
 from pydantic_ai import ModelRetry
 
@@ -25,7 +25,7 @@ class FakeResponse:
 
 def test_get_telemetry_returns_the_payload_on_200(monkeypatch):
     monkeypatch.setattr(
-        httpx, "get", lambda *a, **kw: FakeResponse(200, {"subsystem": "power"})
+        httpx2, "get", lambda *a, **kw: FakeResponse(200, {"subsystem": "power"})
     )
 
     assert agent.get_telemetry("power") == {"subsystem": "power"}
@@ -33,7 +33,7 @@ def test_get_telemetry_returns_the_payload_on_200(monkeypatch):
 
 def test_get_telemetry_asks_the_model_to_retry_on_503(monkeypatch):
     monkeypatch.setattr(
-        httpx, "get", lambda *a, **kw: FakeResponse(503, {"error": "comms blackout"})
+        httpx2, "get", lambda *a, **kw: FakeResponse(503, {"error": "comms blackout"})
     )
 
     with pytest.raises(ModelRetry) as raised:
@@ -50,7 +50,7 @@ def test_get_telemetry_is_registered_with_three_retries():
 
 def test_request_analysis_returns_the_analyst_text(monkeypatch):
     monkeypatch.setattr(
-        httpx, "post", lambda *a, **kw: FakeResponse(200, {"analysis": "park and wait"})
+        httpx2, "post", lambda *a, **kw: FakeResponse(200, {"analysis": "park and wait"})
     )
 
     assert agent.request_analysis("dust storm?") == "park and wait"

@@ -132,7 +132,7 @@ uv run python agent.py
 
 Type: `Ask the analyst: does the approaching dust storm threaten the mission?`
 
-One trace, both processes: agent run → tool span → httpx client span → **FastAPI
+One trace, both processes: agent run → tool span → httpx2 client span → **FastAPI
 server span** → the analyst's own model call. Two different model names in the
 `gen_ai` attributes. Open Logfire's token/cost view: it rolls up across both services.
 

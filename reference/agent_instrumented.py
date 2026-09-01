@@ -5,7 +5,7 @@ Run it with:  uv run python agent.py
 
 import os
 
-import httpx
+import httpx2
 from dotenv import load_dotenv
 from pydantic_ai import Agent, ModelRetry
 
@@ -35,7 +35,7 @@ def get_telemetry(subsystem: str) -> dict:
 
     Subsystems: power, wheels, nav, drill, weather_station.
     """
-    response = httpx.get(f"{GROUND_STATION_URL}/telemetry/{subsystem}", timeout=30)
+    response = httpx2.get(f"{GROUND_STATION_URL}/telemetry/{subsystem}", timeout=30)
     if response.status_code != 200:
         raise ModelRetry(
             f"ground station returned {response.status_code}: {response.text}"
@@ -46,7 +46,7 @@ def get_telemetry(subsystem: str) -> dict:
 @mission_control.tool_plain
 def request_analysis(question: str) -> str:
     """Ask the ground station's science analyst to interpret mission data."""
-    response = httpx.post(
+    response = httpx2.post(
         f"{GROUND_STATION_URL}/analyze", json={"question": question}, timeout=60
     )
     return response.json()["analysis"]

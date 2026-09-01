@@ -1,4 +1,4 @@
-"""The STEP 5 beat: instrumented httpx + instrumented FastAPI must produce ONE trace.
+"""The STEP 5 beat: instrumented httpx2 + instrumented FastAPI must produce ONE trace.
 
 This runs the real ground station in a background thread and makes a real HTTP call,
 so it verifies W3C traceparent propagation end to end without touching OpenAI.
@@ -8,12 +8,12 @@ import socket
 import threading
 import time
 
-import httpx
+import httpx2
 import logfire
 import pytest
 import uvicorn
 from logfire.testing import TestExporter
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor  # backs logfire.instrument_httpx
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
 import ground_station
@@ -61,7 +61,7 @@ def _spans_for_one_call(port, exporter, path):
     # Stands in for the agent's run span, which the real demo gets from
     # instrument_pydantic_ai(); the point is that the HTTP hop stays inside it.
     with logfire.span("mission_control run"):
-        response = httpx.get(f"http://127.0.0.1:{port}{path}")
+        response = httpx2.get(f"http://127.0.0.1:{port}{path}")
     logfire.force_flush()
     time.sleep(0.2)
     return response, exporter.exported_spans
@@ -77,7 +77,7 @@ def test_agent_side_and_service_side_spans_share_one_trace(traced_server):
 
     names = " | ".join(span.name for span in spans)
     assert "mission_control run" in names
-    assert "GET" in names, f"no httpx client span in: {names}"
+    assert "GET" in names, f"no httpx2 client span in: {names}"
     assert "/telemetry/" in names, f"no FastAPI server span in: {names}"
 
 
