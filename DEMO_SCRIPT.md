@@ -6,12 +6,18 @@ Everything you type is in `code`. Every beat has an escape hatch.
 ## Before you go on stage
 
 ```bash
-cp .env.example .env            # fill in OPENAI_API_KEY and LOGFIRE_TOKEN
+cp .env.example .env            # fill in PYDANTIC_AI_GATEWAY_API_KEY
 uv sync
+uv run logfire projects use <project>      # DO NOT SKIP — see below
 uv run pytest -q                # everything green
 uv run python ground_station.py            # terminal 1, leave it running
 uv run python scripts/smoke.py             # terminal 2, expect "all clear"
 ```
+
+**The project selection is not optional.** Without it, the first `logfire.configure()`
+stops and interactively asks which project to use — which would happen at STEP 2,
+mid-paste, in front of the room. Leave `LOGFIRE_TOKEN` unset; your `logfire auth`
+credentials are what you want.
 
 Also, once, the day before:
 
@@ -157,9 +163,10 @@ boundary is still a single story.*
 ## T+14:00 — buffer and questions (2 min)
 
 Optional 60-second closer if you're ahead: `git checkout demo-fixed -- agent.py`
-adds one sentence to the agent's instructions telling it to say when it has no data.
-Rerun the weather question — it now refuses to invent. The point: *you could only
-write that sentence because the trace showed you the bug.*
+adds one sentence telling the agent to check telemetry's sol against the mission's
+current sol and flag anything older. Rerun the weather question — it now leads with
+"this data is from sol 1102". The point: *you could only write that sentence because
+the trace showed you the bug.*
 
 ---
 
