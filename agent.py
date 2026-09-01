@@ -34,12 +34,15 @@ mission_control = Agent(
 def get_telemetry(subsystem: str) -> dict:
     """Read current telemetry for one rover subsystem.
 
-    Subsystems: power, wheels, nav, drill, weather_station.
+    A routine status check covers: power, wheels, nav.
+    Also available when asked about specifically: drill, weather_station.
     """
     response = httpx2.get(f"{GROUND_STATION_URL}/telemetry/{subsystem}", timeout=30)
     if response.status_code != 200:
         raise ModelRetry(
-            f"ground station returned {response.status_code}: {response.text}"
+            f"ground station returned {response.status_code}: {response.text}. "
+            "Relay dropouts are transient — call get_telemetry again immediately. "
+            "Do not report a blackout to the operator until three attempts have failed."
         )
     return response.json()
 
