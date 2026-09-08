@@ -1,219 +1,56 @@
-# Runbook — "OTel 101: Why is my agent doing that?"
+# Cue card v3 · OTel 101 · flipped order · slides in 8:20, hard stop 8:30
 
-~16 minutes of live running. The arc is **show the bug first, sit in the confusion,
-then let the trace answer it in five seconds.** Everything you type is in `code`.
+New arc: agents in the dark → the monsters → the question to the room → the reveal (the answer existed before agents) → how it works → teaser → live.
 
-> ### ⚠️ Type the prompts exactly as written
->
-> The opening bug is sensitive to what is already in the conversation:
->
-> - **Ask the weather question first, in a fresh session.** That is 8/8. Asked later
->   in a long conversation it drops to 5/6.
-> - **Never type the word "rover."** The agent then hunts for the rover's location
->   instead of falling back on Houston: 0/5, against 6/6 without it.
-> - Say "rover" out loud as much as you like. Just don't type it.
-
-## Before you go on stage
-
-```bash
-cp .env.example .env            # fill in PYDANTIC_AI_GATEWAY_API_KEY
-uv sync
-uv run logfire projects use <project>      # DO NOT SKIP
-uv run pytest -q                # everything green
-uv run python ground_station.py            # terminal 1, leave it running
-uv run python scripts/smoke.py             # terminal 2, expect "all clear"
-```
-
-**The project selection is not optional.** Without it the first `logfire.configure()`
-stops and asks which project to use — which would happen at STEP 2, mid-paste, in
-front of the room. Leave `LOGFIRE_TOKEN` unset; your `logfire auth` credentials are
-what you want.
-
-Once, the day before:
-
-```bash
-GROUND_STATION_TELEMETRY=1 uv run python ground_station.py   # terminal 1
-uv run python scripts/seed_traces.py                         # terminal 2
-```
-
-Four finished traces land in Logfire. **Pin them.** They are the fallback for every
-beat. Then restart the ground station *without* `GROUND_STATION_TELEMETRY`, and
-`git checkout main -- agent.py .env.example`.
-
-Two terminals: **1** = ground station (silent), **2** = the agent. Browser on Logfire.
+**Rules (unchanged)**
+- Time promise in the intro: "about eight minutes of slides, then we go live."
+- OpenTracing + OpenCensus → merged 2019.
+- gen_ai as a unit, now spoken during the DEMO when attributes are on screen: "your framework EMITS the standard names, any OTel tool knows how to READ them."
+- Each point once. Watch "basically." "2 AM," not "2 AM in the morning."
 
 ---
 
-## 1 · T+0:00 — the bug, with nothing to see (3 min)
+## 1 · Title · 0:00-0:30
+- One-breath intro: 20 years engineering, Pydantic user before employee, Applied AI.
+- Hook: production at 2 AM, "what in the world made you do that."
+- Time promise + shape.
 
-```bash
-uv run python agent.py
-```
+## 2 · Launched in the dark · 0:30-1:30
+- Agents left the notebook; they're a business bet now, someone owns the outcome.
+- Tools are API and MCP calls into your REAL services, a layer on the stack you already had.
+- The loop is driven by an LLM: non-deterministic, tool A or B on a slight input change.
+- Land: we ship them, and we can't see them.
 
-Type:
+## 3 · The monsters · 1:30-2:30
+- Point at two or three, not all: token spend nobody approved, tool sprawl, context overwhelm.
+- Keeper: "amazing in capabilities, amazing in the failure modes."
+- Land: you can't reason it out from the code, because the code doesn't decide. You have to look.
 
-```
-What's the weather?
-```
+## 4 · The question · 2:30-3:15
+- ASK IT AND PAUSE: "How do you know what your agent is doing right now?"
+- Invite chat answers, read two aloud (expect: logs, print, nothing, langsmith).
+- The turn: this exact question, seeing a distributed unpredictable system from the outside, was asked AND ANSWERED years before agents existed.
 
-You get something like:
+## 5 · The reveal: OpenTelemetry · 3:15-5:15
+- Enjoy the reveal beat, don't rush past it.
+- Cloud era: Netflix, Twitter, Uber, elastic microservices; breakpoints and one log file stopped holding.
+- OpenTracing + OpenCensus → **2019** → OpenTelemetry.
+- Three signals: logs (what happened at a point), metrics ("a number in motion"), traces (where, in what order).
+- SPAN, 10 sec: one unit of work, start to end. One model call, one tool call.
+- Close: odds are your stack already speaks it.
 
-> *"The weather in Houston, Texas is currently 28.4°C, humid, with a light breeze
-> coming off the Gulf."*
+## 6 · The braid · 5:15-6:00
+- Left to right: metric ramps, log names it (oom, 12:05), trace locates it and shows the recovery.
+- Caption is on the slide: warns, names, locates. One rope.
+- Pivot: so how does the data actually move?
 
-Read it out warmly, as if it's a good answer. Pause. Then:
+## 7 · How the data moves · 6:00-7:30
+- App + SDK emits → collector (optional: batch, redact, route, not day one) → backend (Logfire today).
+- OTLP once: lean, protobuf over HTTP/gRPC, and it IS the standard. "Boxes are choices, arrows are the standard."
+- Ownership once: swap tools, no code change. You own your telemetry.
+- THE CLOSER: "if you take one thing from this workshop: OpenTelemetry is an objective good. I want to see my system, and I want to swap providers as my needs develop."
 
-> *"That's a perfectly good answer. We are operating a rover on Mars."*
-
-Now the important part — **do not fix it yet.** Sit in it:
-
-> *"So what happened? Did the weather service return bad data? Did the model make it
-> up? Did a tool fail silently? Did someone put Houston in a prompt two years ago?
-> Look at the terminal — that's everything I have. One line of output. Nothing
-> crashed, nothing went red, no exception, no stack trace. The tests pass. The
-> service is healthy. The bill looks normal."*
-
-> *"How would you debug this? Add print statements and hope it reproduces?"*
-
-That discomfort is the whole talk. Let it sit before you move.
-
-> **If it breaks:** if it answers about Mars instead, you're not in a fresh session —
-> Ctrl-C, rerun, ask it as the first question. Ground station down? Terminal 1.
-
-## 2 · T+3:00 — three lines, and the answer (3 min)
-
-Ctrl-C. Open `agent.py`, find `# ── STEP 2 (live) ──`, paste:
-
-```python
-import logfire
-logfire.configure()
-logfire.instrument_pydantic_ai()
-```
-
-> *"Three lines. No collector, no config file, no changes to anything else."*
-
-```bash
-uv run python agent.py
-```
-
-Same question:
-
-```
-What's the weather?
-```
-
-A Logfire URL prints. Click it. Open the run, open the `get_weather` tool span, and
-show the arguments:
-
-```
-execute_tool get_weather
-  gen_ai.tool.call.arguments = {"location": "Houston, Texas"}
-  gen_ai.tool.call.result    = {"site": "Houston, TX", "air_temp_c": 28.4, ...}
-```
-
-> *"There it is. The model asked for Houston. The weather service did its job
-> perfectly — Houston really is 28.4°C and humid. Every step is individually correct.
-> The bug is that nobody ever wrote down where the gear actually is, and the only
-> place named anywhere in the prompt is where WE are."*
-
-Show the prompt in the model span next to it — one sentence, Houston in it, Mars
-nowhere.
-
-> *"Five seconds from 'no idea' to the exact cause. That's the whole value
-> proposition, and it cost three lines."*
-
-> **If it breaks:** `git checkout demo-instrumented -- agent.py` has all four lines
-> already in. Or use the pinned "wrong planet" trace.
-
-## 3 · T+6:00 — what else is in there (2 min)
-
-While you're in the trace: open a model span and walk the `gen_ai.*` attributes —
-model name, the full prompt, the response, input and output tokens, the cost. Then
-the timeline: where the time actually went.
-
-> *"Nobody wrote a line of logging for any of this."*
-
-> **If it breaks:** any pinned trace works.
-
-## 4 · T+8:00 — a different kind of failure (3 min)
-
-```
-What's the state of the drill?
-```
-
-Slower this time. In Logfire: **three** `get_telemetry` spans, the first two red —
-503, `comms blackout: no carrier from relay orbiter` — with model activity between
-them, then a success.
-
-> *"Same shape of question, completely different problem. The first was the model
-> making a reasonable choice with missing context. This is the service falling over
-> and the agent retrying until it got through. Without the trace, both just look like
-> 'the agent is being weird today'."*
-
-> **If it breaks:** the counter self-resets every three calls — just ask again.
-
-## 5 · T+11:00 — across two services (3 min)
-
-Terminal 1: Ctrl-C, then — **the most common way this demo fails, don't skip it:**
-
-```bash
-GROUND_STATION_TELEMETRY=1 uv run python ground_station.py
-```
-
-Terminal 2: Ctrl-C. Paste under `# ── STEP 5 (live) ──`:
-
-```python
-logfire.instrument_httpx()
-```
-
-```bash
-uv run python agent.py
-```
-
-```
-Ask the analyst: does the approaching dust storm threaten the mission?
-```
-
-One trace, both processes: `mission_control` → tool span → httpx2 client span →
-**FastAPI server span** → `science_analyst` → a *different* model. Open the
-token/cost view: it rolls up across both services.
-
-> *"One line and one environment variable, and a request that crossed a process
-> boundary is still one story — with the bill attached."*
-
-> **If it breaks:** a missing service half means the env var or the restart. Don't
-> debug live: switch to the pinned "cross-service" trace and keep talking.
-
-## 6 · T+14:00 — the fix, and questions (2 min)
-
-```bash
-git checkout demo-fixed -- agent.py
-```
-
-Two sentences added to the prompt, naming where the gear actually is. Rerun, ask the
-weather question — now it asks Elysium Base and reports -63.2°C.
-
-> *"The fix was two sentences. Working out WHICH two sentences is the part that
-> needed a trace."*
-
----
-
-## Prompts, in order (copy-paste)
-
-```
-What's the weather?
-What's the weather?
-What's the state of the drill?
-Ask the analyst: does the approaching dust storm threaten the mission?
-```
-
-If you want a clean happy-path answer at any point, use `Subsystem status report.` —
-**not** a bare "Status report.", which makes the agent volunteer the Houston weather.
-
-## Reset between rehearsals
-
-```bash
-git checkout main -- agent.py .env.example
-```
-
-Nothing else to reset: the drill counter self-cycles and there is no database.
+## 8 · Teaser: Mission Control · 7:30-8:20
+- The fiction, fast: Mars mission-control agent, rover Kestrel, Pydantic AI, a ground-station service running its own second LLM.
+- The plan, three fingers: instrument it in three lines; break it twice; read it all out of the traces, two services, one trace, full mission cost.
+- "Let's go." Switch screens.
