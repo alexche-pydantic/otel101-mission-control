@@ -28,7 +28,7 @@ logfire.instrument_httpx()
 from agent import GROUND_STATION_URL, mission_control  # noqa: E402
 
 SCENARIOS = [
-    ("happy path", "Status report — how's the rover doing?"),
+    ("happy path", "Status report."),
     ("comms blackout", "What's the state of the drill?"),
     ("wrong planet", "What's the weather?"),
     (

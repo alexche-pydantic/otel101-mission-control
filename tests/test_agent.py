@@ -100,6 +100,9 @@ def test_the_prompt_names_no_location_but_houston():
     assert "houston" in instructions
     for forbidden in ("mars", "kestrel", "elysium", "rover", "space", "planet"):
         assert forbidden not in instructions, f"{forbidden!r} would defuse the bug"
+    # "mission control" implies a remote asset, and the model then hunts for its
+    # location instead of falling back on ours: measured 1/3 against 3/3 without it.
+    assert "mission control" not in instructions
 
 
 @demo_start_only

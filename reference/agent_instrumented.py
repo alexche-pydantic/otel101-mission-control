@@ -23,17 +23,20 @@ GROUND_STATION_URL = os.getenv("GROUND_STATION_URL", "http://localhost:8011")
 mission_control = Agent(
     os.getenv("MODEL_AGENT", "openai:gpt-4.1"),
     # Nothing here says Mars, or Kestrel, or that this is even a space programme.
-    # The only place in the whole prompt is Houston — which is where WE are, not
-    # where the rover is. Nobody ever wrote down where the rover is.
-    instructions="You are mission control, operating from the control centre in Houston, Texas.",
+    # The one place named is Houston — where WE are. It says nothing about where the
+    # gear is, because nobody ever wrote that down. The model fills the gap itself.
+    instructions=(
+        "You are the operations assistant for the operator. "
+        "You are located in Houston, Texas."
+    ),
 )
 
 
 @mission_control.tool_plain(retries=3)
 def get_telemetry(subsystem: str) -> dict:
-    """Read current telemetry for one rover subsystem.
+    """Read current telemetry for one subsystem.
 
-    A routine status check covers: power, wheels, nav.
+    A routine status check covers: power, wheels.
     Also available when asked about specifically: drill.
     """
     response = httpx2.get(f"{GROUND_STATION_URL}/telemetry/{subsystem}", timeout=30)
@@ -63,4 +66,14 @@ def request_analysis(question: str) -> str:
 
 
 if __name__ == "__main__":
-    mission_control.to_cli_sync(prog_name="mission-control")
+    # A plain REPL, not Agent.to_cli(): the CLI prints "Called tool ..." for every
+    # call, which gives away in beat 1 exactly what the demo says you cannot see.
+    conversation = []
+    while True:
+        try:
+            question = input("\nmission-control > ")
+        except (EOFError, KeyboardInterrupt):
+            break
+        answer = mission_control.run_sync(question, message_history=conversation)
+        conversation = answer.all_messages()
+        print(f"\n{answer.output}")

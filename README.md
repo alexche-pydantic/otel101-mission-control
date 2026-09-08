@@ -76,12 +76,23 @@ bug. All the Mars-ness in this demo arrives through telemetry, never the prompt.
 
 Acceptance bar is ≥6 of 10 runs asking for the wrong location.
 
-> **Observed: 10/10** with `gateway/openai:gpt-4.1` (measured 2026-09-07). Re-measure
-> with `uv run python scripts/wrong_location_rate.py`.
+> **Observed: 6/6** with `gateway/openai:gpt-4.1`, measured 2026-09-07 **after a full
+> status + drill conversation** — the real demo conditions, not a fresh session.
+> Re-measure with `uv run python scripts/wrong_location_rate.py`.
 
-**The question must be plain: "What's the weather?"** Mentioning the rover
-("what's the weather where the rover is?") makes the agent ask which rover instead —
-measured 0/5 — and the beat does not fire.
+Two things keep this seed alive, both enforced by tests:
+
+1. **The prompt must not say "mission control."** That phrase makes the model reason
+   about a remote asset and go hunting for its location: 1/3 against 3/3 without it.
+   The shipped prompt says only where the *assistant* is, and asserts nothing about
+   where the gear is — the co-location assumption is entirely the model's own.
+2. **No telemetry payload may name a location.** The nav block used to report
+   "2.4 km NE of Elysium Base"; a status report put that in the conversation and the
+   agent then asked for the weather *there*. nav is gone, and
+   `test_no_telemetry_payload_leaks_a_location` keeps it that way.
+
+And one thing the presenter controls: **never type the word "rover".** It has the
+same effect as a leaked location — 0/5 when it appears in an earlier question.
 
 ### Two earlier versions of this seed, and why they were dropped
 

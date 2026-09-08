@@ -51,17 +51,6 @@ TELEMETRY = {
             "suspension": "within limits",
         },
     },
-    "nav": {
-        "subsystem": "nav",
-        "status": "nominal",
-        "sol": SOL,
-        "readings": {
-            "heading_deg": 118,
-            "position": "2.4 km NE of Elysium Base",
-            "next_waypoint": "Kestrel Ridge",
-            "tilt_deg": 6.2,
-        },
-    },
     "drill": {
         "subsystem": "drill",
         "status": "stowed",

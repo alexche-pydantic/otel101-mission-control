@@ -73,7 +73,19 @@ def test_weather_is_no_longer_a_telemetry_subsystem():
     assert "weather_station" not in ground_station.TELEMETRY
 
 
-@pytest.mark.parametrize("subsystem", ["power", "wheels", "nav"])
+def test_no_telemetry_payload_leaks_a_location():
+    """Seed 2 dies if any subsystem mentions where the gear is.
+
+    The nav block used to report "2.4 km NE of Elysium Base"; a status report put
+    that in the conversation and the agent then asked for the weather there.
+    """
+    payloads = str(ground_station.TELEMETRY).lower()
+
+    for giveaway in ("elysium", "mars", "kestrel ridge", "base"):
+        assert giveaway not in payloads, f"{giveaway!r} would defuse the weather bug"
+
+
+@pytest.mark.parametrize("subsystem", ["power", "wheels"])
 def test_other_subsystems_succeed_first_try_with_mars_plausible_data(client, subsystem):
     response = client.get(f"/telemetry/{subsystem}")
 
