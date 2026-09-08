@@ -22,9 +22,6 @@ GROUND_STATION_URL = os.getenv("GROUND_STATION_URL", "http://localhost:8011")
 
 mission_control = Agent(
     os.getenv("MODEL_AGENT", "openai:gpt-4.1"),
-    # Nothing here says Mars, or Kestrel, or that this is even a space programme.
-    # The one place named is Houston — where WE are. It says nothing about where the
-    # gear is, because nobody ever wrote that down. The model fills the gap itself.
     instructions=(
         "You are the operations assistant for the operator. "
         "You are located in Houston, Texas."
@@ -36,7 +33,7 @@ mission_control = Agent(
 def get_telemetry(subsystem: str) -> dict:
     """Read current telemetry for one subsystem.
 
-    A routine status check covers: power, wheels.
+    A routine status check covers: power, wheels, navigation
     Also available when asked about specifically: drill.
     """
     response = httpx2.get(f"{GROUND_STATION_URL}/telemetry/{subsystem}", timeout=30)
@@ -68,8 +65,9 @@ def request_analysis(question: str) -> str:
 if __name__ == "__main__":
     # A plain REPL, not Agent.to_cli(): the CLI prints "Called tool ..." for every
     # call, which gives away in beat 1 exactly what the demo says you cannot see.
-    print("\nMission control. Ask about the gear — the weather, the drill, a subsystem")
+    print("\nMars Rover Mission control. Ask about the gear — the weather, the drill, a subsystem")
     print("status report — or ask the science analyst to interpret something.")
+    print("Location: Elysium fields.")
 
     conversation = []
     while True:

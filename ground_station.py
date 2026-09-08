@@ -62,6 +62,10 @@ TELEMETRY = {
             "samples_cached": 3,
         },
     },
+    "navigation": {
+        "subsystem": "navigation",
+        "exact location": "Elysium Base"
+    }
 }
 
 # Seed 1: the drill's first two calls hit a comms blackout, the third gets through,
@@ -138,6 +142,8 @@ class AnalysisRequest(BaseModel):
 @app.post("/analyze")
 async def analyze(request: AnalysisRequest):
     await asyncio.sleep(1.5)
+    if os.getenv("GROUND_STATION_TELEMETRY") == "1":
+        logfire.warn("Running analyzer with LLM right on Mars! How cool is that?")
     result = await science_analyst.run(request.question)
     return {"analysis": result.output}
 

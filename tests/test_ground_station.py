@@ -73,16 +73,27 @@ def test_weather_is_no_longer_a_telemetry_subsystem():
     assert "weather_station" not in ground_station.TELEMETRY
 
 
-def test_no_telemetry_payload_leaks_a_location():
-    """Seed 2 dies if any subsystem mentions where the gear is.
+def test_routine_subsystems_do_not_leak_a_location():
+    """Seed 2 dies if the gear's location reaches the conversation too early.
 
-    The nav block used to report "2.4 km NE of Elysium Base"; a status report put
-    that in the conversation and the agent then asked for the weather there.
+    `navigation` carries it deliberately — that is the fact the agent never asks
+    for, and the fix on demo-fixed tells it to. Every OTHER subsystem must stay
+    location-free, so the drill beat cannot defuse the weather beat.
+
+    Note the remaining ordering constraint: a status report DOES reach navigation,
+    so the weather question must come first. The runbook says so at the top.
     """
-    payloads = str(ground_station.TELEMETRY).lower()
+    for subsystem, payload in ground_station.TELEMETRY.items():
+        if subsystem == "navigation":
+            continue
+        text = str(payload).lower()
+        for giveaway in ("elysium", "mars", "kestrel ridge"):
+            assert giveaway not in text, f"{giveaway!r} in {subsystem!r} defuses Seed 2"
 
-    for giveaway in ("elysium", "mars", "kestrel ridge", "base"):
-        assert giveaway not in payloads, f"{giveaway!r} would defuse the weather bug"
+
+def test_navigation_knows_where_the_gear_is():
+    """The system knew all along. Nobody wired it into the weather path."""
+    assert "Elysium Base" in str(ground_station.TELEMETRY["navigation"])
 
 
 @pytest.mark.parametrize("subsystem", ["power", "wheels"])
