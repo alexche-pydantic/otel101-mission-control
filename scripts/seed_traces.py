@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 load_dotenv()
 
-logfire.configure(service_name="mission-control", distributed_tracing=True)
+logfire.configure(distributed_tracing=True)  # service name comes from .env
 logfire.instrument_pydantic_ai()
 logfire.instrument_httpx()
 
