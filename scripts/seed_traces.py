@@ -30,7 +30,7 @@ from agent import GROUND_STATION_URL, mission_control  # noqa: E402
 SCENARIOS = [
     ("happy path", "Status report — how's the rover doing?"),
     ("comms blackout", "What's the state of the drill?"),
-    ("sunny on Mars", "What's the weather at Elysium Base?"),
+    ("wrong planet", "What's the weather?"),
     (
         "cross-service",
         "Ask the analyst: does the approaching dust storm threaten the mission?",
