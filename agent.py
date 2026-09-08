@@ -11,13 +11,12 @@ from pydantic_ai import Agent, ModelRetry
 
 load_dotenv()
 
-# ── STEP 2 (live): paste the three lines below this comment ──
-# import logfire
-# logfire.configure()
-# logfire.instrument_pydantic_ai()
+import logfire
 
-# ── STEP 5 (live): paste this one line to join both services in one trace ──
-# logfire.instrument_httpx()
+logfire.configure()
+logfire.instrument_pydantic_ai()
+
+logfire.instrument_httpx()
 
 GROUND_STATION_URL = os.getenv("GROUND_STATION_URL", "http://localhost:8011")
 
