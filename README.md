@@ -76,9 +76,11 @@ bug. All the Mars-ness in this demo arrives through telemetry, never the prompt.
 
 Acceptance bar is ≥6 of 10 runs asking for the wrong location.
 
-> **Observed: 6/6** with `gateway/openai:gpt-4.1`, measured 2026-09-07 **after a full
+> **Observed: 5/6** with `gateway/openai:gpt-4.1`, measured 2026-09-07 **after a full
 > status + drill conversation** — the real demo conditions, not a fresh session.
-> Re-measure with `uv run python scripts/wrong_location_rate.py`.
+> The one miss asked for `location="current"` and got a 404. In a *fresh* session the
+> same question is 8/8, so if it misses live, restart the agent and ask the weather
+> first. Re-measure with `uv run python scripts/wrong_location_rate.py`.
 
 Two things keep this seed alive, both enforced by tests:
 
@@ -91,8 +93,13 @@ Two things keep this seed alive, both enforced by tests:
    agent then asked for the weather *there*. nav is gone, and
    `test_no_telemetry_payload_leaks_a_location` keeps it that way.
 
-And one thing the presenter controls: **never type the word "rover".** It has the
-same effect as a leaked location — 0/5 when it appears in an earlier question.
+And two things the presenter controls:
+
+- **Never type the word "rover."** Same effect as a leaked location: 0/5 when it
+  appears in an earlier question.
+- **Open with "Subsystem status report.", not "Status report."** A bare status
+  report makes the agent volunteer the Houston weather during beat 1 and spoil the
+  reveal. With "subsystem" the status stays clean 6/6 and the bug still fires.
 
 ### Two earlier versions of this seed, and why they were dropped
 

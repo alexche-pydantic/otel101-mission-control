@@ -23,7 +23,7 @@ from agent import mission_control  # noqa: E402
 
 # The demo asks this AFTER a status report and the drill, in one continuous
 # conversation — so that is what we measure. A fresh session is the easy case.
-SEQUENCE = ["Status report.", "What is the state of the drill?"]
+SEQUENCE = ["Subsystem status report.", "What is the state of the drill?"]
 QUESTION = "What's the weather?"
 RUNS = 10
 

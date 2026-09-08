@@ -5,10 +5,14 @@ Everything you type is in `code`. Every beat has an escape hatch.
 
 > ### ⚠️ Type the prompts exactly as written
 >
-> Seed 2 (the weather beat) dies if the word **"rover"** appears anywhere earlier in
-> the conversation — the agent then hunts for the rover's location instead of falling
-> back on Houston. Measured **0/5** with "how's the rover doing?" in beat 1, against
-> **6/6** with a plain "Status report."
+> Seed 2 (the weather beat) is sensitive to the wording of the questions BEFORE it.
+>
+> - Never type the word **"rover"** — the agent then hunts for the rover's location
+>   instead of falling back on Houston. Measured **0/5**, against **6/6** without it.
+> - Open with **"Subsystem status report."**, not a bare "Status report." A bare
+>   status report makes the agent volunteer the Houston weather three beats early
+>   and spoils the reveal. With "subsystem": clean **4/4**, and the bug still fires
+>   **4/4**.
 >
 > Say "rover" out loud as much as you like. Just don't type it.
 
@@ -56,7 +60,7 @@ git checkout main -- agent.py .env.example
 uv run python agent.py
 ```
 
-Type: `Status report.`
+Type: `Subsystem status report.`
 
 You get a clean answer about Kestrel. Point at terminal 2: **nothing else happened.**
 No idea which tools ran, what the model was asked, what it cost, how long it took.
@@ -77,7 +81,7 @@ logfire.instrument_pydantic_ai()
 uv run python agent.py
 ```
 
-Same question: `Status report.`
+Same question: `Subsystem status report.`
 
 A Logfire URL prints. That is the whole setup cost. Click it.
 
@@ -190,7 +194,7 @@ sentence. Finding out which sentence took a trace.*
 ## Prompts, in order (copy-paste)
 
 ```
-Status report.
+Subsystem status report.
 Status report.
 What's the state of the drill?
 What's the weather?
