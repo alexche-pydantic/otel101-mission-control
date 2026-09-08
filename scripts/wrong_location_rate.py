@@ -21,9 +21,9 @@ load_dotenv()
 
 from agent import mission_control  # noqa: E402
 
-# The demo asks this AFTER a status report and the drill, in one continuous
-# conversation — so that is what we measure. A fresh session is the easy case.
-SEQUENCE = ["Subsystem status report.", "What is the state of the drill?"]
+# The demo opens with this question, cold, as the first thing in a fresh session —
+# so that is what we measure. (Asked late in a long conversation it drops to 5/6.)
+SEQUENCE = []
 QUESTION = "What's the weather?"
 RUNS = 10
 
