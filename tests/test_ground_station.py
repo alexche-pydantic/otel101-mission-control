@@ -40,29 +40,37 @@ def test_drill_counter_resets_so_every_run_is_identical(client):
         assert statuses == [503, 503, 200]
 
 
-def test_weather_station_returns_real_but_stale_readings(client):
-    """Seed 2: the payload is valid and confident, and 187 sols out of date."""
-    payload = client.get("/telemetry/weather_station").json()
+def test_weather_serves_both_sites(client):
+    """Seed 2: the service knows Houston and Elysium Base. Neither is faked."""
+    houston = client.get("/weather/Houston, Texas").json()
+    elysium = client.get("/weather/Elysium Base").json()
 
-    assert payload["status"] == "nominal"
-    assert payload["readings"], "the bug is staleness, not emptiness"
-    assert payload["sol"] < ground_station.SOL
-    assert ground_station.SOL - payload["sol"] > 100, "must be obviously stale"
-
-
-def test_weather_payload_never_admits_it_is_stale(client):
-    """Nothing may tell the model the data is old — the sol number is the only tell."""
-    payload = str(client.get("/telemetry/weather_station").json()).lower()
-
-    for giveaway in ("stale", "outdated", "old", "expired", "no recent"):
-        assert giveaway not in payload
+    assert houston["site"] == "Houston, TX"
+    assert elysium["site"] == "Elysium Base"
 
 
-def test_weather_readings_are_mars_plausible():
-    readings = ground_station.TELEMETRY["weather_station"]["readings"]
-    assert -80 <= readings["air_temp_c"] <= -20
-    assert -80 <= readings["ground_temp_c"] <= -20
-    assert 600 <= readings["pressure_pa"] <= 1200
+def test_houston_weather_is_earth_like_and_elysium_is_not(client):
+    """The whole beat rests on these two being unmistakably different planets."""
+    houston = client.get("/weather/Houston, Texas").json()
+    elysium = client.get("/weather/Elysium Base").json()
+
+    assert houston["air_temp_c"] > 15, "Houston must read as obviously Earth"
+    assert -80 <= elysium["air_temp_c"] <= -20, "Elysium must read as obviously Mars"
+
+
+def test_weather_matches_on_a_partial_location_string(client):
+    """The model says 'Houston, Texas'; the station is keyed 'houston'."""
+    assert client.get("/weather/Houston, Texas").status_code == 200
+    assert client.get("/weather/houston").status_code == 200
+
+
+def test_unknown_weather_site_is_a_404(client):
+    assert client.get("/weather/Baikonur").status_code == 404
+
+
+def test_weather_is_no_longer_a_telemetry_subsystem():
+    """Weather moved to its own tool so the model must choose a location."""
+    assert "weather_station" not in ground_station.TELEMETRY
 
 
 @pytest.mark.parametrize("subsystem", ["power", "wheels", "nav"])

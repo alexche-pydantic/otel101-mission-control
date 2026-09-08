@@ -40,7 +40,7 @@ uv run python scripts/smoke.py      # against a running ground station, no LLM
 | `reference/agent_instrumented.py` | agent.py with the lines already pasted — stage fallback |
 | `scripts/seed_traces.py` | runs all four scenarios into Logfire as a backup |
 | `scripts/smoke.py` | non-LLM pre-flight |
-| `scripts/staleness_rate.py` | measures the Seed 2 miss rate |
+| `scripts/wrong_location_rate.py` | measures the Seed 2 wrong-location rate |
 | `tests/` | the seeds, the staging, and cross-service trace propagation |
 
 ## The two seeded bugs
@@ -51,38 +51,55 @@ live run. The agent's tool raises `ModelRetry` on any non-200, so the trace show
 three `get_telemetry` spans with model activity between them. *A service problem that
 looks like a model problem.*
 
-**Seed 2 — six months out of date.** `GET /telemetry/weather_station` returns HTTP
-200 with real, Mars-plausible readings from **sol 1102**, while the rest of the
-mission is on sol 1289. Nothing in the payload says "stale" — the sol number is the
-only tell. Asked about the weather, the agent reports those readings as current.
+**Seed 2 — the wrong planet.** Asked "What's the weather?", the agent calls
+`get_weather(location="Houston, Texas")` and reports 28.4°C and humid — for a rover
+on Mars.
 
-This is deliberately **not** rigged. The system prompt is a two-sentence ops persona
-that says nothing about checking data freshness, and nothing hides the sol number —
-the model is given everything it needs to catch this and doesn't. *A green trace, a
-confident answer, and a silently wrong result.*
+Nothing is faked and nothing failed. Houston really is 28.4°C and humid; the weather
+service really does serve both sites; the tool call is well-formed; the service
+answers truthfully. The bug is that the model had to *choose* a location, and the
+only location anywhere in its context was the one in the prompt — the control
+centre's own. **Nobody ever wrote down where the rover is.**
+
+That is why the agent's prompt is exactly one sentence, and why it must stay that
+way:
+
+```python
+instructions="You are mission control, operating from the control centre in Houston, Texas."
+```
+
+No Mars, no Kestrel, no Elysium, no rover, no mention of space. A test enforces this
+(`test_the_prompt_names_no_location_but_houston`) — any of those words defuses the
+bug. All the Mars-ness in this demo arrives through telemetry, never the prompt.
 
 ### Measured rate
 
-Acceptance bar is ≥6 of 10 runs presenting the stale readings as current.
+Acceptance bar is ≥6 of 10 runs asking for the wrong location.
 
-> **Observed: 10/10** with `gateway/openai:gpt-4.1` (measured 2026-08-31). Re-measure
-> any time with `uv run python scripts/staleness_rate.py`.
+> **Observed: 10/10** with `gateway/openai:gpt-4.1` (measured 2026-09-07). Re-measure
+> with `uv run python scripts/wrong_location_rate.py`.
 
-Several runs even quote `(Sol 1102)` in the answer and *still* call it current.
+**The question must be plain: "What's the weather?"** Mentioning the rover
+("what's the weather where the rover is?") makes the agent ask which rover instead —
+measured 0/5 — and the beat does not fire.
 
-### Why this replaced the PRD's "sunny on Mars"
+### Two earlier versions of this seed, and why they were dropped
 
-The PRD specified Seed 2 as the agent fabricating weather when handed an empty
-payload. That was measured at **0/10** — twice, on `gpt-4.1` and `gpt-4.1-mini`,
-with the empty payload tuned both ways the PRD allows. Current models reliably say
-"no readings available" instead of inventing. The bug in the PRD is no longer a bug
-these models have.
+The PRD specified Seed 2 as the agent *fabricating* weather from an empty payload.
+It does not reproduce: **0 out of ~65 live runs**, across four question phrasings,
+three models (`gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`), with and without a
+Mars-anchored persona, with and without data present, and with ambiguous Kelvin
+values. Current models answer "no readings available" or ask for clarification.
+With no persona at all, one run volunteered *"if you're referring to Mars (for a
+rover)…"* — they will not guess.
 
-Staleness-blindness is the same *class* of failure — an LLM-layer error that no
-exception surfaces and only a trace reveals — and it still reproduces perfectly. The
-demo beat is unchanged in shape and stronger in payoff. To go back to the original
-empty payload, see `TELEMETRY["weather_station"]` in `ground_station.py`; the beat
-will simply not fire.
+A staleness seed (readings 187 sols out of date, presented as current) measured
+10/10 and was shipped for a while. The wrong-location bug replaced it because the
+evidence is a single tool argument an audience reads at a glance, rather than a sol
+number they have to do arithmetic on.
+
+Both are the same class: an LLM-layer error that raises no exception and is invisible
+without a trace.
 
 ## Demo states (git)
 
@@ -108,7 +125,7 @@ agent-side span. That is acceptance criterion 4's plumbing, minus the LLM.
 
 Verified with live model calls through Pydantic AI Gateway: all four demo beats end
 to end, the drill's three-call retry pattern (twice), the analyst's cross-service
-call, and the 10/10 staleness rate.
+call, and the 10/10 wrong-location rate.
 
 Not verified: Logfire's cross-service cost rollup rendering in the UI, which needs a
 run with the service side traced. `scripts/seed_traces.py` produces it along with

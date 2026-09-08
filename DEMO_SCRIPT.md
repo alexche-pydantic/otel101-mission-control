@@ -100,34 +100,43 @@ says it's the service.*
 
 ## T+8:30 — the weather: it's the model, not the service (2.5 min)
 
-Type: `What's the weather at Elysium Base?`
+Type **exactly** this, and nothing more:
 
-You get a confident, precise forecast — air temperature, ground temperature, wind,
-pressure. Every number is real. Read it out as if all is well.
-
-Now open the `get_telemetry` tool span next to it:
-
-```json
-{"subsystem": "weather_station", "status": "nominal", "sol": 1102,
- "readings": {"air_temp_c": -63.2, "ground_temp_c": -71.8, "wind_speed_mps": 4.6,
-              "pressure_pa": 705, "opacity_tau": 0.6},
- "last_downlink": "sol 1102 14:07 LMST"}
+```
+What's the weather?
 ```
 
-**Sol 1102.** Every other subsystem in this demo reports sol 1289. That weather is
-187 sols old — about six months. The agent called it "the current weather".
+> ⚠️ Do **not** say "the rover" or name Elysium Base. If you mention the rover the
+> agent stops and asks *which* rover (measured 0/5) and the beat does not fire.
+> The plain question fires 10/10.
 
-Often the answer even prints `(Sol 1102)` itself: the model *saw* the timestamp,
-repeated it, and still called the reading current. If that happens, point at it —
-it is the best thirty seconds in the talk.
+You get:
 
-The line to land: *nothing failed. No exception, no 503, no latency spike, a
-completely green trace — and the answer is six months wrong. This is the class of
-bug you cannot find without looking inside the run.*
+> *"The weather in Houston, Texas is currently 28.4°C, humid, with a light breeze
+> coming off the Gulf."*
 
-> **If it breaks:** if the agent does flag the data as stale, say "that's the careful
-> run — here's the usual one" and switch to the pinned "stale weather" trace.
-> Measured at 10/10 missed, so this is the most reliable beat in the demo.
+Let that sit for a second. Then: *"...we are operating a rover on Mars."*
+
+Now open the tool span. The smoking gun is the **argument**:
+
+```
+execute_tool get_weather   location = "Houston, Texas"
+```
+
+Nothing failed. The tool worked perfectly and returned real, correct data — Houston
+genuinely is 28.4°C and humid. The model picked the location, and the only location
+anywhere in its context was ours, in the prompt: *"You are mission control, operating
+from the control centre in Houston, Texas."*
+
+Nobody ever wrote down where the rover is.
+
+The line to land: *every individual step here is correct. The prompt is reasonable,
+the tool call is well-formed, the service answered truthfully, the answer is fluent.
+And the system is reporting the wrong planet. No exception, no 503, no red span —
+the only way you find this is by reading the arguments the model chose.*
+
+> **If it breaks:** if it asks a clarifying question instead, you named the rover —
+> just retype the plain question. Otherwise use the pinned "wrong planet" trace.
 
 ## T+11:00 — STEP 5, one trace across two services (3 min)
 
@@ -163,10 +172,9 @@ boundary is still a single story.*
 ## T+14:00 — buffer and questions (2 min)
 
 Optional 60-second closer if you're ahead: `git checkout demo-fixed -- agent.py`
-adds one sentence telling the agent to check telemetry's sol against the mission's
-current sol and flag anything older. Rerun the weather question — it now leads with
-"this data is from sol 1102". The point: *you could only write that sentence because
-the trace showed you the bug.*
+adds one clause to the prompt naming where the rover actually is. Rerun the weather
+question — it now asks Elysium Base and reports -63°C. The point: *the fix was one
+sentence. Finding out which sentence took a trace.*
 
 ---
 
@@ -176,7 +184,7 @@ the trace showed you the bug.*
 Status report — how's the rover doing?
 Status report — how's the rover doing?
 What's the state of the drill?
-What's the weather at Elysium Base?
+What's the weather?
 Ask the analyst: does the approaching dust storm threaten the mission?
 ```
 

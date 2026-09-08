@@ -73,22 +73,6 @@ TELEMETRY = {
             "samples_cached": 3,
         },
     },
-    # Seed 2: real, Mars-plausible readings — but from sol 1102, 187 sols before
-    # the current sol 1289. Valid, confident, and quietly six months out of date.
-    # Nothing in the payload says "stale"; the sol number is the only tell.
-    "weather_station": {
-        "subsystem": "weather_station",
-        "status": "nominal",
-        "sol": 1102,
-        "readings": {
-            "air_temp_c": -63.2,
-            "ground_temp_c": -71.8,
-            "wind_speed_mps": 4.6,
-            "pressure_pa": 705,
-            "opacity_tau": 0.6,
-        },
-        "last_downlink": "sol 1102 14:07 LMST",
-    },
 }
 
 # Seed 1: the drill's first two calls hit a comms blackout, the third gets through,
@@ -112,6 +96,34 @@ async def telemetry(subsystem: str):
             )
 
     return TELEMETRY[subsystem]
+
+
+# Seed 2: the weather service knows several sites. Houston really is in Houston
+# and Elysium Base really is on Mars — nothing here is faked. The only thing
+# missing is any record of WHERE THE ROVER IS, and nobody noticed.
+WEATHER = {
+    "houston": {
+        "site": "Houston, TX",
+        "air_temp_c": 28.4,
+        "wind_speed_mps": 3.1,
+        "conditions": "humid, light breeze off the gulf",
+    },
+    "elysium base": {
+        "site": "Elysium Base",
+        "air_temp_c": -63.2,
+        "wind_speed_mps": 4.6,
+        "conditions": "clear, high dust opacity",
+    },
+}
+
+
+@app.get("/weather/{location}")
+async def weather(location: str):
+    await asyncio.sleep(0.4)
+    key = next((k for k in WEATHER if k.split(",")[0] in location.lower()), None)
+    if key is None:
+        raise HTTPException(404, f"no weather station at {location!r}")
+    return WEATHER[key]
 
 
 MISSION_CONTEXT = f"""Sol {SOL}, rover Kestrel, Elysium Base.

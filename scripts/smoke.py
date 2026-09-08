@@ -34,14 +34,14 @@ check("drill blackout cycle is 503, 503, 200", statuses == [503, 503, 200], str(
 again = [httpx2.get(f"{URL}/telemetry/drill", timeout=10).status_code for _ in range(3)]
 check("drill counter reset for the next run", again == [503, 503, 200], str(again))
 
-weather = httpx2.get(f"{URL}/telemetry/weather_station", timeout=10).json()
-power_sol = power.json()["sol"]
-check("weather payload has readings", bool(weather["readings"]))
-check("weather payload still claims nominal", weather["status"] == "nominal")
+houston = httpx2.get(f"{URL}/weather/Houston, Texas", timeout=10)
+elysium = httpx2.get(f"{URL}/weather/Elysium Base", timeout=10)
+check("houston weather station answers", houston.status_code == 200)
+check("elysium weather station answers", elysium.status_code == 200)
 check(
-    "weather data is stale",
-    weather["sol"] < power_sol,
-    f"sol {weather['sol']} vs mission sol {power_sol}",
+    "the two sites are obviously different planets",
+    houston.json()["air_temp_c"] > 15 > elysium.json()["air_temp_c"],
+    f"{houston.json()['air_temp_c']}C vs {elysium.json()['air_temp_c']}C",
 )
 
 print()

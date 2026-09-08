@@ -48,6 +48,24 @@ def test_get_telemetry_is_registered_with_three_retries():
     assert tool.max_retries == 3
 
 
+def test_get_weather_returns_the_payload(monkeypatch):
+    monkeypatch.setattr(
+        httpx2, "get", lambda *a, **kw: FakeResponse(200, {"site": "Houston, TX"})
+    )
+
+    assert agent.get_weather("Houston, Texas") == {"site": "Houston, TX"}
+
+
+def test_the_prompt_names_no_location_but_houston(monkeypatch):
+    """Seed 2 only works because Houston is the ONLY place in the prompt."""
+    instructions = AGENT_SOURCE[AGENT_SOURCE.index("instructions="):]
+    instructions = instructions[: instructions.index("\n)")].lower()
+
+    assert "houston" in instructions
+    for forbidden in ("mars", "kestrel", "elysium", "rover", "space", "planet"):
+        assert forbidden not in instructions, f"{forbidden!r} would defuse the bug"
+
+
 def test_request_analysis_returns_the_analyst_text(monkeypatch):
     monkeypatch.setattr(
         httpx2, "post", lambda *a, **kw: FakeResponse(200, {"analysis": "park and wait"})

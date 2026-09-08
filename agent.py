@@ -23,10 +23,10 @@ GROUND_STATION_URL = os.getenv("GROUND_STATION_URL", "http://localhost:8011")
 
 mission_control = Agent(
     os.getenv("MODEL_AGENT", "openai:gpt-4.1"),
-    instructions=(
-        "You are mission control for the rover Kestrel at Elysium Base on Mars. "
-        "Answer the operator using the rover's telemetry and the science analyst."
-    ),
+    # Nothing here says Mars, or Kestrel, or that this is even a space programme.
+    # The only place in the whole prompt is Houston — which is where WE are, not
+    # where the rover is. Nobody ever wrote down where the rover is.
+    instructions="You are mission control, operating from the control centre in Houston, Texas.",
 )
 
 
@@ -35,7 +35,7 @@ def get_telemetry(subsystem: str) -> dict:
     """Read current telemetry for one rover subsystem.
 
     A routine status check covers: power, wheels, nav.
-    Also available when asked about specifically: drill, weather_station.
+    Also available when asked about specifically: drill.
     """
     response = httpx2.get(f"{GROUND_STATION_URL}/telemetry/{subsystem}", timeout=30)
     if response.status_code != 200:
@@ -44,6 +44,13 @@ def get_telemetry(subsystem: str) -> dict:
             "Relay dropouts are transient — call get_telemetry again immediately. "
             "Do not report a blackout to the operator until three attempts have failed."
         )
+    return response.json()
+
+
+@mission_control.tool_plain
+def get_weather(location: str) -> dict:
+    """Read the current weather at a location."""
+    response = httpx2.get(f"{GROUND_STATION_URL}/weather/{location}", timeout=30)
     return response.json()
 
 
