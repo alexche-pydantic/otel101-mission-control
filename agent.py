@@ -69,6 +69,9 @@ def request_analysis(question: str) -> str:
 if __name__ == "__main__":
     # A plain REPL, not Agent.to_cli(): the CLI prints "Called tool ..." for every
     # call, which gives away in beat 1 exactly what the demo says you cannot see.
+    print("\nMission control. Ask about the gear — the weather, the drill, a subsystem")
+    print("status report — or ask the science analyst to interpret something.")
+
     conversation = []
     while True:
         try:
