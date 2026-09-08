@@ -24,7 +24,9 @@ mission_control = Agent(
     os.getenv("MODEL_AGENT", "openai:gpt-4.1"),
     instructions=(
         "You are the operations assistant for the operator. "
-        "You are located in Houston, Texas."
+        "You are located in Houston, Texas. "
+        "The gear you monitor is NOT here. Check the navigation subsystem for its "
+        "location, and answer questions about conditions for that location."
     ),
 )
 
