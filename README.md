@@ -103,7 +103,8 @@ And two things the presenter controls:
 
 ### Two earlier versions of this seed, and why they were dropped
 
-The PRD specified Seed 2 as the agent *fabricating* weather from an empty payload.
+This demo was originally specified with Seed 2 as the agent *fabricating* weather
+from an empty payload.
 It does not reproduce: **0 out of ~65 live runs**, across four question phrasings,
 three models (`gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`), with and without a
 Mars-anchored persona, with and without data present, and with ambiguous Kelvin
